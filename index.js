@@ -1,5 +1,6 @@
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const jwt = require('jsonwebtoken');
 const express = require('express');
 const cors = require('cors');
 const app = express() ;
@@ -30,6 +31,12 @@ async function run() {
     app.get('/reviews' , async (req , res) => {
       const result = await reviewsCollection.find().toArray() ;
       res.send(result) ;
+    })
+
+    app.post('/jwt' , async (req , res) => {
+      const email = req.body ;
+      const token = jwt.sign(email , process.env.SECRET_ACCESS_TOKEN , {expiresIn : '3h'}) ;
+      res.send({token}) ;
     })
 
     // Send a ping to confirm a successful connection
