@@ -21,11 +21,25 @@ const client = new MongoClient(uri, {
   }
 });
 
+const verifyToken = async (req , res , next) => {
+  if(!req.headers?.authorization?.split(' ')[1]){
+    return res.status(401).send({message : "unAuthorized access !"}) ;
+  }
+  jwt.verify(req.headers?.authorization?.split(' ')[1] , process.env.SECRET_ACCESS_TOKEN , (error , decoded) => {
+    if(error){
+      return res.status(403).send({message : "forbidden access !"}) ;
+    }
+    req.user = decoded ;
+    next() ;
+  })
+}
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
+    const usersCollection = client.db('assignment12').collection('users') ;
     const reviewsCollection = client.db('assignment12').collection('reviews') ;
 
     app.get('/reviews' , async (req , res) => {
@@ -37,6 +51,23 @@ async function run() {
       const email = req.body ;
       const token = jwt.sign(email , process.env.SECRET_ACCESS_TOKEN , {expiresIn : '3h'}) ;
       res.send({token}) ;
+    })
+
+    app.put('/users' , async (req , res) => {
+      const user = req.body ;
+      const filter = {email : user?.email} ;
+      const isAxist = await usersCollection.findOne(filter) ;
+      if(isAxist){
+        return res.send({isAxist , message : "already axist !"})
+      }
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set : {
+          ...user ,
+        }
+      }
+      const result= await usersCollection.updateOne(filter , updatedDoc , options) ;
+      res.send(result) ;
     })
 
     // Send a ping to confirm a successful connection
