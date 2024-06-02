@@ -1,5 +1,5 @@
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const cors = require('cors');
@@ -41,9 +41,26 @@ async function run() {
 
     const usersCollection = client.db('assignment12').collection('users') ;
     const reviewsCollection = client.db('assignment12').collection('reviews') ;
+    const worksCollection = client.db('assignment12').collection('works') ;
 
     app.get('/reviews' , async (req , res) => {
       const result = await reviewsCollection.find().toArray() ;
+      res.send(result) ;
+    })
+
+    app.get('/user/:email' , async (req , res) => {
+      const email = req.params.email ;
+      const filter = {email : email} ;
+      const result = await usersCollection.findOne(filter) ;
+      res.send(result) ;
+    })
+
+    app.get('/workSheets/:email' , verifyToken , async (req , res) => {
+      const email = req.params.email ;
+      if(req.user.email !== email){
+        return res.status(403).send({message : "forbidden access !"})
+      }
+      const result = (await worksCollection.find({email : email}).sort({date : -1}).toArray()) ;
       res.send(result) ;
     })
 
@@ -51,6 +68,12 @@ async function run() {
       const email = req.body ;
       const token = jwt.sign(email , process.env.SECRET_ACCESS_TOKEN , {expiresIn : '3h'}) ;
       res.send({token}) ;
+    })
+
+    app.post('/workSheet' , async (req , res) => {
+      const workSheet = req.body ;
+      const result = await worksCollection.insertOne(workSheet) ;
+      res.send(result) ;
     })
 
     app.put('/users' , async (req , res) => {
@@ -67,6 +90,12 @@ async function run() {
         }
       }
       const result= await usersCollection.updateOne(filter , updatedDoc , options) ;
+      res.send(result) ;
+    })
+
+    app.delete('/workSheet/:id' , async (req , res) => {
+      const id = req.params.id ;
+      const result = await worksCollection.deleteOne({_id : new ObjectId(id)}) ;
       res.send(result) ;
     })
 
