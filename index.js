@@ -48,10 +48,16 @@ async function run() {
       res.send(result) ;
     })
 
-    app.get('/user/:email' , async (req , res) => {
+    app.get('/userRole/:email' , async (req , res) => {
       const email = req.params.email ;
       const filter = {email : email} ;
       const result = await usersCollection.findOne(filter) ;
+      res.send(result) ;
+    })
+
+    app.get('/employees' , async (req , res) => {
+      const filter = {role : 'employee'} ;
+      const result = await usersCollection.find(filter).toArray() ;
       res.send(result) ;
     })
 
@@ -73,6 +79,19 @@ async function run() {
     app.post('/workSheet' , async (req , res) => {
       const workSheet = req.body ;
       const result = await worksCollection.insertOne(workSheet) ;
+      res.send(result) ;
+    })
+
+    app.patch('/user/verify/:id' , async (req , res) => {
+      const id = req.params.id ;
+      const {Verified} = req.body ;
+      const filter = {_id : new ObjectId(id)} ;
+      const updatedDoc = {
+        $set : {
+          Verified ,
+        }
+      }
+      const result = await usersCollection.updateOne(filter , updatedDoc) ;
       res.send(result) ;
     })
 
