@@ -1,5 +1,5 @@
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId, ListCollectionsCursor } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const cors = require('cors');
@@ -9,6 +9,8 @@ const port = process.env.PORT || 5555 ;
 app.use(cors()) ;
 app.use(express.json()) ;
 require('dotenv').config() ;
+
+const stripe = require('stripe')(process.env.VITE_STRIPE_API_KEY) ;
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.w0yjihf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -42,6 +44,7 @@ async function run() {
     const usersCollection = client.db('assignment12').collection('users') ;
     const reviewsCollection = client.db('assignment12').collection('reviews') ;
     const worksCollection = client.db('assignment12').collection('works') ;
+    const paymentsCollection = client.db('assignment12').collection('payments') ;
 
     app.get('/reviews' , async (req , res) => {
       const result = await reviewsCollection.find().toArray() ;
@@ -79,6 +82,31 @@ async function run() {
     app.post('/workSheet' , async (req , res) => {
       const workSheet = req.body ;
       const result = await worksCollection.insertOne(workSheet) ;
+      res.send(result) ;
+    })
+
+    // stripe payment intent ---------------------------
+    app.post('/create-payment-intent' , async (req , res) => {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount : req.body.amount * 100 ,
+        currency : 'usd' ,
+        payment_method_types : ['card'] ,
+      })
+
+      res.send({clientSecret : paymentIntent?.client_secret}) ;
+    })
+
+    // Payment save into db ----------------------------
+    app.post('/payment-data' , async (req , res) => {
+      const data = req.body ;
+      const filter = {$and : [{month : data.month} , {email : data.email}]} ;
+      const isMonthValid = await paymentsCollection.findOne(filter) ;
+
+      if(isMonthValid){
+        return res.send({isMonthValid , message : "salary already given !" , success : false})
+      }
+
+      const result = await paymentsCollection.insertOne(data) ;
       res.send(result) ;
     })
 
