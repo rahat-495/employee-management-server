@@ -73,6 +73,37 @@ async function run() {
       res.send(result) ;
     })
 
+    // Single users data for details page -------------------------------
+    app.get('/users/:email' , async (req , res) => {
+      const email = req.params.email ;
+      const filter = {email} ;
+      const result = await usersCollection.findOne(filter) ;
+      res.send(result) ;
+    })
+
+    // Is salary already pay or not ----------------------------
+    app.get('/user/idSalaryPay' , async (req , res) => {
+      const email = req.query.email ;
+      const month = parseInt(req.query.month) ;
+      const year = parseInt(req.query.year) ;
+      const filter = {email , month , year} ;
+      const result = await paymentsCollection.findOne(filter) ;
+      if(result){
+        res.send({success : false , message : "already given"}) ;
+      }
+      else{
+        res.send({success : true , message : "not given"}) ;
+      }
+    })
+
+    // Employees monthly payments --------------------
+    app.get('/user/monthly/payments/:email' , async (req , res) => {
+      const email = req.params.email ;
+      const filter = {email} ;
+      const result = await paymentsCollection.find(filter).sort({year : 1 , month : 1}).toArray() ;
+      res.send(result) ;
+    })
+
     app.post('/jwt' , async (req , res) => {
       const email = req.body ;
       const token = jwt.sign(email , process.env.SECRET_ACCESS_TOKEN , {expiresIn : '3h'}) ;
@@ -99,7 +130,7 @@ async function run() {
     // Payment save into db ----------------------------
     app.post('/payment-data' , async (req , res) => {
       const data = req.body ;
-      const filter = {$and : [{month : data.month} , {email : data.email}]} ;
+      const filter = {$and : [{month : data.month} , {year : data.year} , {email : data.email}]} ;
       const isMonthValid = await paymentsCollection.findOne(filter) ;
 
       if(isMonthValid){
