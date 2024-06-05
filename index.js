@@ -81,6 +81,12 @@ async function run() {
       res.send(result) ;
     })
 
+    // get all users name --------------------------------------
+    app.get('/users' , async (req , res) => {
+      const result = await usersCollection.find({role : 'employee'}).toArray() ;
+      res.send(result) ;
+    })
+
     // Is salary already pay or not ----------------------------
     app.get('/user/idSalaryPay' , async (req , res) => {
       const email = req.query.email ;
@@ -94,6 +100,26 @@ async function run() {
       else{
         res.send({success : true , message : "not given"}) ;
       }
+    })
+
+    // for useing bar chart --------------------------
+    app.get('/users/barCharts/:email' , async (req , res) => {
+      const email = req.params.email ;
+      const filter = {email} ;
+      const result = await paymentsCollection.find(filter).toArray() ;
+      res.send(result) ;
+    })
+
+    // get all employees work ------------------------
+    app.get('/all-users-works' , async (req , res) => {
+      const name = req.query.name ;
+      const month = parseInt(req.query.month) ;
+      let filter = {} ;
+      let options = {} ;
+      if(name) filter = {name : name} ;
+      if(month) options = {month : month} ;
+      const result = await worksCollection.find({...filter , ...options}).toArray() ;
+      res.send(result) ;
     })
 
     // Employees monthly payments --------------------
