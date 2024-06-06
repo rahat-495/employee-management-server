@@ -200,6 +200,19 @@ async function run() {
       res.send(result) ;
     })
 
+    // update users fireing --------------------------------
+    app.patch('/users-isFired/:id' , async (req , res) => {
+      const id = req.params.id ;
+      const filter = {_id : new ObjectId(id)} ;
+      const updatedDoc = {
+        $set : {
+          isFired : true ,
+        }
+      }
+      const result = await usersCollection.updateOne(filter , updatedDoc) ; 
+      res.send(result) ;
+    })
+
     app.put('/users' , async (req , res) => {
       const user = req.body ;
       const filter = {email : user?.email} ;
