@@ -186,6 +186,20 @@ async function run() {
       res.send(result) ;
     })
 
+    // to update the salary -----------------------------------
+    app.patch('/user-salary-update/:id' , async (req , res) => {
+      const id = req.params.id ;
+      const data = req.body ;
+      const filter = {_id : new ObjectId(id)} ;
+      const updatedDoc = {
+        $set : {
+          ...data ,
+        }
+      }
+      const result = await usersCollection.updateOne(filter , updatedDoc) ;
+      res.send(result) ;
+    }) 
+
     // to update users role -----------------------------------
     app.patch('/users-role-update/:id' , async (req , res) => {
       const id = req.params.id ;
