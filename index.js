@@ -110,6 +110,12 @@ async function run() {
       res.send(result) ;
     })
 
+    // Get all verified employee with hr ! ---------------------------
+    app.get('/verified-users' , async (req , res) => {
+      const result = await usersCollection.find({Verified : true}).toArray() ;
+      res.send(result) ;
+    })
+
     // get all employees work ------------------------
     app.get('/all-users-works' , async (req , res) => {
       const name = req.query.name ;
@@ -174,6 +180,20 @@ async function run() {
       const updatedDoc = {
         $set : {
           Verified ,
+        }
+      }
+      const result = await usersCollection.updateOne(filter , updatedDoc) ;
+      res.send(result) ;
+    })
+
+    // to update users role -----------------------------------
+    app.patch('/users-role-update/:id' , async (req , res) => {
+      const id = req.params.id ;
+      const filter = {_id : new ObjectId(id)} ;
+      const data = req.body ;
+      const updatedDoc = {
+        $set : {
+          ...data ,
         }
       }
       const result = await usersCollection.updateOne(filter , updatedDoc) ;
