@@ -46,6 +46,26 @@ async function run() {
     const worksCollection = client.db('assignment12').collection('works') ;
     const paymentsCollection = client.db('assignment12').collection('payments') ;
 
+    const verifyAdmin = async (req , res , next) => {
+      const email = req.user.email ;
+      const filter = {email : email} ;
+      const isAdmin = await usersCollection.findOne(filter) ;
+      if(isAdmin?.role !== 'admin'){
+        return res.status(403).send({message : 'forbidden access !'}) ;
+      }
+      next() ;
+    }
+
+    const verifyHr = async (req , res , next) => {
+      const email = req.user.email ;
+      const filter = {email : email} ;
+      const isHr = await usersCollection.findOne(filter) ;
+      if(isHr?.role !== 'hr'){
+        return res.status(403).send({message : 'forbidden access !'}) ;
+      }
+      next() ;
+    }
+
     app.get('/reviews' , async (req , res) => {
       const result = await reviewsCollection.find().toArray() ;
       res.send(result) ;
@@ -58,7 +78,7 @@ async function run() {
       res.send(result) ;
     })
 
-    app.get('/employees' , async (req , res) => {
+    app.get('/employees' , verifyToken , verifyHr , async (req , res) => {
       const filter = {role : 'employee'} ;
       const result = await usersCollection.find(filter).toArray() ;
       res.send(result) ;
@@ -82,13 +102,13 @@ async function run() {
     })
 
     // get all users name --------------------------------------
-    app.get('/users' , async (req , res) => {
+    app.get('/users' , verifyToken , verifyHr , async (req , res) => {
       const result = await usersCollection.find({role : 'employee'}).toArray() ;
       res.send(result) ;
     })
 
     // Is salary already pay or not ----------------------------
-    app.get('/user/idSalaryPay' , async (req , res) => {
+    app.get('/user/idSalaryPay' , verifyToken , verifyHr , async (req , res) => {
       const email = req.query.email ;
       const month = parseInt(req.query.month) ;
       const year = parseInt(req.query.year) ;
@@ -103,7 +123,7 @@ async function run() {
     })
 
     // for useing bar chart --------------------------
-    app.get('/users/barCharts/:email' , async (req , res) => {
+    app.get('/users/barCharts/:email' , verifyToken , verifyHr , async (req , res) => {
       const email = req.params.email ;
       const filter = {email} ;
       const result = await paymentsCollection.find(filter).toArray() ;
@@ -111,13 +131,13 @@ async function run() {
     })
 
     // Get all verified employee with hr ! ---------------------------
-    app.get('/verified-users' , async (req , res) => {
+    app.get('/verified-users' , verifyToken , verifyAdmin , async (req , res) => {
       const result = await usersCollection.find({Verified : true}).toArray() ;
       res.send(result) ;
     })
 
     // get all employees work ------------------------
-    app.get('/all-users-works' , async (req , res) => {
+    app.get('/all-users-works' , verifyToken , verifyHr , async (req , res) => {
       const name = req.query.name ;
       const month = parseInt(req.query.month) ;
       let filter = {} ;
@@ -129,7 +149,7 @@ async function run() {
     })
 
     // Employees monthly payments --------------------
-    app.get('/user/monthly/payments/:email' , async (req , res) => {
+    app.get('/user/monthly/payments/:email' , verifyToken , async (req , res) => {
       const email = req.params.email ;
       const filter = {email} ;
       const result = await paymentsCollection.find(filter).sort({year : 1 , month : 1}).toArray() ;
@@ -142,14 +162,14 @@ async function run() {
       res.send({token}) ;
     })
 
-    app.post('/workSheet' , async (req , res) => {
+    app.post('/workSheet' , verifyToken , async (req , res) => {
       const workSheet = req.body ;
       const result = await worksCollection.insertOne(workSheet) ;
       res.send(result) ;
     })
 
     // stripe payment intent ---------------------------
-    app.post('/create-payment-intent' , async (req , res) => {
+    app.post('/create-payment-intent' , verifyToken , verifyHr , async (req , res) => {
       const paymentIntent = await stripe.paymentIntents.create({
         amount : req.body.amount * 100 ,
         currency : 'usd' ,
@@ -160,7 +180,7 @@ async function run() {
     })
 
     // Payment save into db ----------------------------
-    app.post('/payment-data' , async (req , res) => {
+    app.post('/payment-data' , verifyToken , verifyHr , async (req , res) => {
       const data = req.body ;
       const filter = {$and : [{month : data.month} , {year : data.year} , {email : data.email}]} ;
       const isMonthValid = await paymentsCollection.findOne(filter) ;
@@ -173,7 +193,7 @@ async function run() {
       res.send(result) ;
     })
 
-    app.patch('/user/verify/:id' , async (req , res) => {
+    app.patch('/user/verify/:id' , verifyToken , verifyHr , async (req , res) => {
       const id = req.params.id ;
       const {Verified} = req.body ;
       const filter = {_id : new ObjectId(id)} ;
@@ -187,7 +207,7 @@ async function run() {
     })
 
     // to update the salary -----------------------------------
-    app.patch('/user-salary-update/:id' , async (req , res) => {
+    app.patch('/user-salary-update/:id' , verifyToken , verifyAdmin , async (req , res) => {
       const id = req.params.id ;
       const data = req.body ;
       const filter = {_id : new ObjectId(id)} ;
@@ -201,7 +221,7 @@ async function run() {
     }) 
 
     // to update users role -----------------------------------
-    app.patch('/users-role-update/:id' , async (req , res) => {
+    app.patch('/users-role-update/:id' , verifyToken , verifyAdmin , async (req , res) => {
       const id = req.params.id ;
       const filter = {_id : new ObjectId(id)} ;
       const data = req.body ;
@@ -214,13 +234,14 @@ async function run() {
       res.send(result) ;
     })
 
-    // update users fireing --------------------------------
-    app.patch('/users-isFired/:id' , async (req , res) => {
+    // update users fireding --------------------------------
+    app.patch('/users-isFired/:id' , verifyToken , verifyAdmin , async (req , res) => {
       const id = req.params.id ;
+      const data = req.body ;
       const filter = {_id : new ObjectId(id)} ;
       const updatedDoc = {
         $set : {
-          isFired : true ,
+          ...data ,
         }
       }
       const result = await usersCollection.updateOne(filter , updatedDoc) ; 
@@ -244,7 +265,7 @@ async function run() {
       res.send(result) ;
     })
 
-    app.delete('/workSheet/:id' , async (req , res) => {
+    app.delete('/workSheet/:id' , verifyToken , async (req , res) => {
       const id = req.params.id ;
       const result = await worksCollection.deleteOne({_id : new ObjectId(id)}) ;
       res.send(result) ;
