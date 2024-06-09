@@ -45,6 +45,7 @@ async function run() {
     const reviewsCollection = client.db('assignment12').collection('reviews') ;
     const worksCollection = client.db('assignment12').collection('works') ;
     const paymentsCollection = client.db('assignment12').collection('payments') ;
+    const messagesCollection = client.db('assignment12').collection('messages') ;
 
     const verifyAdmin = async (req , res , next) => {
       const email = req.user.email ;
@@ -152,7 +153,21 @@ async function run() {
     app.get('/user/monthly/payments/:email' , verifyToken , async (req , res) => {
       const email = req.params.email ;
       const filter = {email} ;
-      const result = await paymentsCollection.find(filter).sort({year : 1 , month : 1}).toArray() ;
+      const result = await paymentsCollection.find(filter).sort({year : -1 , month : -1}).toArray() ;
+      res.send(result) ;
+    })
+
+    // get single message data -----------------------
+    app.get('/message/:id' , async (req , res) => {
+      const id = req.params.id ;
+      const filter = {_id : new ObjectId(id)} ;
+      const result = await messagesCollection.findOne(filter) ;
+      res.send(result) ;
+    })
+
+    // get all messages data -------------------------
+    app.get('/message' , verifyToken , verifyAdmin , async (req , res) => {
+      const result = await messagesCollection.find().toArray() ;
       res.send(result) ;
     })
 
@@ -190,6 +205,13 @@ async function run() {
       }
 
       const result = await paymentsCollection.insertOne(data) ;
+      res.send(result) ;
+    })
+
+    // post messages into db ---------------------------
+    app.post('/message' , async (req , res) => {
+      const data = req.body ;
+      const result = await messagesCollection.insertOne(data) ;
       res.send(result) ;
     })
 
