@@ -6,7 +6,14 @@ const cors = require('cors');
 const app = express() ;
 const port = process.env.PORT || 5555 ;
 
-app.use(cors()) ;
+app.use(cors({
+  origin : [
+    'http://localhost:5173' ,
+    'https://assignment12-ce3b6.web.app' ,
+    'https://assignment12-ce3b6.firebaseapp.com' ,
+  ],
+  credentials : true ,
+})) ;
 app.use(express.json()) ;
 require('dotenv').config() ;
 
